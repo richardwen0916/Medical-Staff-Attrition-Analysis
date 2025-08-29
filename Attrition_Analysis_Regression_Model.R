@@ -1,12 +1,12 @@
-# >> 更改路徑 <<
-setwd("/Users/ariianakkk/Desktop") 
+# >> Change Path <<
+setwd("C:/Users/YourUsername/Documents/YourProjectDirectory") 
 
-## 讀取數據
+## Load Data
 data <- read.csv("watson_healthcare_modified.csv")
 data <- data[, !(names(data) %in% c("EmployeeCount", "Over18", "StandardHours", "EmployeeID"))]
 attach(data)
 
-##載入所需的套件
+## Load Required Packages
 install.packages("ggplot2")
 library(ggplot2)
 install.packages("tidyr")
@@ -20,10 +20,10 @@ library(vcd)
 library(GGally)
 install.packages("moments")
 
-#### 肆、EDA ####
+#### IV. EDA ####
 
-## 前處理 ##
-# 確保 Attrition 為因子類型
+## Preprocessing ##
+# Ensure Attrition is factor type
 data$Attrition <- as.factor(data$Attrition)
 # education
 data$Education <- as.factor(data$Education)
@@ -44,30 +44,30 @@ data$Shift <- as.factor(data$Shift)
 # work life balance
 data$WorkLifeBalance <- as.factor(data$WorkLifeBalance)
 
-# 檢查 Attrition 分佈
+# Check Attrition distribution
 table(data$Attrition)
 
-# 獲取數值型變數
+# Get numeric variables
 numeric_vars <- names(data)[sapply(data, is.numeric)]
 
-# 將文字變數轉為因子
+# Convert text variables to factors
 data <- data %>% mutate(across(where(is.character), as.factor))
 
-# 計算偏態和繪圖
-library(moments)  # 用於計算偏態
+# Calculate skewness and create plots
+library(moments)  # For calculating skewness
 for (var in numeric_vars) {
-  cat("變數:", var, "\n")
+  cat("Variable:", var, "\n")
   
-  # 偏態系數
+  # Skewness coefficient
   skewness_val <- skewness(data[[var]], na.rm = TRUE)
-  cat("偏態 (Skewness):", skewness_val, "\n")
+  cat("Skewness:", skewness_val, "\n")
   
-  ##### 表格1 繪製分布圖 #####
+  ##### Table 1: Create distribution plots #####
   hist(data[[var]], main = paste("Histogram of", var), xlab = var, col = "skyblue")
 }
 
-# tranformation
-data$Log_DistanceFromHome <- log(data$DistanceFromHome + 1)  # 加 1 防止 log(0)
+# Transformation
+data$Log_DistanceFromHome <- log(data$DistanceFromHome + 1)  # Add 1 to prevent log(0)
 data$Log_NumCompaniesWorked <- log(data$NumCompaniesWorked + 1)
 data$Log_PercentSalaryHike <- log(data$PercentSalaryHike + 1)
 data$Log_TotalWorkingYears <- log(data$TotalWorkingYears + 1)
@@ -76,17 +76,15 @@ data$Log_YearsInCurrentRole <- log(data$YearsInCurrentRole + 1)
 data$Log_YearsSinceLastPromotion <- log(data$YearsSinceLastPromotion + 1)
 data$Log_YearsWithCurrManager <- log(data$YearsWithCurrManager + 1)
 
-# 保存原始變數
+# Save original variables
 original_vars <- data[, c("DistanceFromHome", "NumCompaniesWorked", "PercentSalaryHike", 
                           "TotalWorkingYears", "YearsAtCompany", "YearsInCurrentRole", 
                           "YearsSinceLastPromotion", "YearsWithCurrManager")]
 
+## End Preprocessing ##
 
-## 前處理結束 ##
-
-
-### 1.當y軸為attrition=no，x軸為不同的factor變數的分布情況 ###
-#建立一個新的data數據框來計算子類別的次數
+### 1. When y-axis is attrition=no, x-axis shows distribution of different factor variables ###
+# Create a new data dataframe to calculate subcategory frequencies
 selected_columns <- c("BusinessTravel", "Department", "EducationField", "EnvironmentSatisfaction", 
                       "JobInvolvement", "JobLevel", "JobRole", "JobSatisfaction", "MaritalStatus", 
                       "OverTime", "RelationshipSatisfaction", "Shift", "WorkLifeBalance","Attrition")
@@ -94,126 +92,110 @@ data2<-data[selected_columns]
 data_yes <- data2[data2$Attrition == "Yes", ]
 data_no <- data2[data2$Attrition == "No", ]
 
-
-
 no.frequency <- data.frame()
-#為每個X項目計算子類別的頻次並儲存
+# Calculate subcategory frequencies for each X item and store
 for (col in selected_columns) {
   temp_table <- table(data_no[[col]])
   temp_df <- as.data.frame(temp_table)
-  temp_df$X_item <- col  # 添加X項目的名稱
-  colnames(temp_df) <- c("SubCategory", "Freq", "X_item")  # 設定欄位名稱
-  # 將結果合併到總資料框中
+  temp_df$X_item <- col  # Add X item name
+  colnames(temp_df) <- c("SubCategory", "Freq", "X_item")  # Set column names
+  # Combine results into total dataframe
   no.frequency <- rbind(no.frequency, temp_df)
 }
 no.frequency<-no.frequency[no.frequency$X_item != "Attrition", ]
 
 #no.frequency
 ggplot(no.frequency, aes(x = X_item, y = Freq, fill = Freq)) +
-  geom_bar(stat = "identity", position = "stack") +  # 堆疊長條圖
-  geom_text(aes(label = paste(SubCategory, "\n", Freq)),  # 標示次數與子類別名稱
-            position = position_stack(vjust = 0.5), size = 2.3) +  # 在長條中間顯示文本
+  geom_bar(stat = "identity", position = "stack") +  # Stacked bar chart
+  geom_text(aes(label = paste(SubCategory, "\n", Freq)),  # Label frequencies and subcategory names
+            position = position_stack(vjust = 0.5), size = 2.3) +  # Display text in bar center
   labs(title = "Attrition=No by X Item", 
        x = "X Items", 
        y = "Frequency") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),  # X軸標籤旋轉
-        panel.grid = element_blank(),  # 隱藏背景網格
-        plot.margin = margin(2, 2, 2, 2)) +  # 調整邊距
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate X-axis labels
+        panel.grid = element_blank(),  # Hide background grid
+        plot.margin = margin(2, 2, 2, 2)) +  # Adjust margins
   scale_fill_gradient(low = "blue", high = "red") 
 
-
-
-
-
-### 2.當y軸為attrition=yes，x軸為不同的factor變數的分布情況 ###
+### 2. When y-axis is attrition=yes, x-axis shows distribution of different factor variables ###
 yes.frequency <- data.frame()
-#為每個X項目計算子類別的頻次並儲存
+# Calculate subcategory frequencies for each X item and store
 for (col in selected_columns) {
   temp_table <- table(data_yes[[col]])
   temp_df <- as.data.frame(temp_table)
-  temp_df$X_item <- col  # 添加X項目的名稱
-  colnames(temp_df) <- c("SubCategory", "Freq", "X_item")  # 設定欄位名稱
-  # 將結果合併到總資料框中
+  temp_df$X_item <- col  # Add X item name
+  colnames(temp_df) <- c("SubCategory", "Freq", "X_item")  # Set column names
+  # Combine results into total dataframe
   yes.frequency <- rbind(yes.frequency, temp_df)
 }
 yes.frequency<-yes.frequency[yes.frequency$X_item != "Attrition", ]
 
-#繪製堆疊長條圖
+# Create stacked bar chart
 #yes.frequency
 ggplot(yes.frequency, aes(x = X_item, y = Freq, fill = Freq)) +
-  geom_bar(stat = "identity", position = "stack") +  # 堆疊長條圖
-  geom_text(aes(label = paste(SubCategory, "\n", Freq)),  # 標示次數與子類別名稱
-            position = position_stack(vjust = 0.5), size = 2.3) +  # 在長條中間顯示文本
+  geom_bar(stat = "identity", position = "stack") +  # Stacked bar chart
+  geom_text(aes(label = paste(SubCategory, "\n", Freq)),  # Label frequencies and subcategory names
+            position = position_stack(vjust = 0.5), size = 2.3) +  # Display text in bar center
   labs(title = "Attrition=Yes by X Item", 
        x = "X Items", 
        y = "Frequency") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),  # X軸標籤旋轉
-        panel.grid = element_blank(),  # 隱藏背景網格
-        plot.margin = margin(2, 2, 2, 2)) +  # 調整邊距
-  scale_fill_gradient(low = "blue", high = "red")  # 顏色根據頻率從藍色到紅色漸變
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate X-axis labels
+        panel.grid = element_blank(),  # Hide background grid
+        plot.margin = margin(2, 2, 2, 2)) +  # Adjust margins
+  scale_fill_gradient(low = "blue", high = "red")  # Color gradient from blue to red based on frequency
 
-
-
-# 恢復原始繪圖參數
+# Restore original plotting parameters
 par(mfrow = c(1, 1))
-
 
 ### 3. Mosaic Plot of JobSatisfaction, JobInvolvement, RelationshipSatisfaction, and WorkLifeBalance ###
  
 xtabs(~JobSatisfaction+JobInvolvement+RelationshipSatisfaction+WorkLifeBalance, data=data)
 
-# 建立列聯表
+# Create contingency table
 job_table_1 <- xtabs(~ JobSatisfaction + JobInvolvement + RelationshipSatisfaction + WorkLifeBalance, 
                    data = data)
 
-# 繪製 Mosaic Plot
+# Create Mosaic Plot
 mosaicplot(job_table_1, 
            main = "Mosaic Plot of JobSatisfaction, JobInvolvement, RelationshipSatisfaction, and WorkLifeBalance", 
-           color = TRUE,  # 使用顏色區分不同區塊
+           color = TRUE,  # Use colors to distinguish different blocks
            xlab = "Job Satisfaction", 
            ylab = "Job Involvement",
-           )       # 將軸標籤垂直顯示
-
-
+           )       # Display axis labels vertically
 
 ### 4. Mosaic Plot of Shift, EnvironmentSatisfaction, JobSatisfaction, and RelationshipSatisfaction ### 
 
 xtabs(~Shift+EnvironmentSatisfaction+JobSatisfaction+RelationshipSatisfaction, data=data)
-# 建立列聯表
+# Create contingency table
 job_table_2 <- xtabs(~Shift+EnvironmentSatisfaction+JobSatisfaction+RelationshipSatisfaction, 
                    data = data)
 
-# 繪製 Mosaic Plot
+# Create Mosaic Plot
 mosaicplot(job_table_2, 
            main = "Mosaic Plot of Shift, EnvironmentSatisfaction, JobSatisfaction, RelationshipSatisfaction", 
-           color = TRUE,  # 使用顏色區分不同區塊
+           color = TRUE,  # Use colors to distinguish different blocks
            xlab = "Shift", 
            ylab = "EnvironmentSatisfaction",
            )      
 
-
-
-### 5. 繪製DailyRate和MonthlyIncome散布圖 ###
+### 5. Create scatter plot of DailyRate and MonthlyIncome ###
 ggplot() +
   geom_point(data = data, aes(x = Age, y = DailyRate, color = "DailyRate")) +
   geom_point(data = data, aes(x = Age, y = MonthlyIncome, color = "MonthlyIncome")) +
   labs(title = "Age and DailyRate/MonthlyIncome", x = "Age", y = "Money") +
   scale_color_manual(values = c("DailyRate" = "blue", "MonthlyIncome" = "red"))
 
-
-
-### 6. TrainingTimesLastYear and Department的長條圖 ###
+### 6. Bar chart of TrainingTimesLastYear and Department ###
 ggplot(data, aes(x = TrainingTimesLastYear, fill = Department)) +
-  geom_bar(position = "dodge") +  # 使用dodge讓長條並排顯示
+  geom_bar(position = "dodge") +  # Use dodge to display bars side by side
   labs(title = "TrainingTimesLastYear and Department", x = "Training Time Last Year", y = "Department") +
   scale_fill_brewer(palette = "Set3")
 
+#### V. Model ####
 
-#### 伍、Model ####
+### 1. Original Model ###
 
-### 1. 原始模型 ###
-
-# 移除原始變數
+# Remove original variables
 data$DistanceFromHome <- NULL
 data$NumCompaniesWorked <- NULL
 data$PercentSalaryHike <- NULL
@@ -223,119 +205,119 @@ data$YearsInCurrentRole <- NULL
 data$YearsSinceLastPromotion <- NULL
 data$YearsWithCurrManager <- NULL
 
-# 建立原始邏輯迴歸模型
+# Build original logistic regression model
 logistic_model <- glm(Attrition ~ ., data = data, family = "binomial")
 
-# 查看原始模型摘要
+# View original model summary
 summary(logistic_model)
 
-# 提取模型摘要
+# Extract model summary
 model_summary <- summary(logistic_model)
 
-# 提取係數表（包含 p-value）
+# Extract coefficient table (including p-value)
 coefficients_table <- model_summary$coefficients
 
-# 篩選 p-value 小於 0.05 的變數
+# Filter variables with p-value < 0.05
 significant_vars <- coefficients_table[coefficients_table[, "Pr(>|z|)"] < 0.05, ]
 
-# 按 p-value 升序排序
+# Sort by p-value in ascending order
 sorted_significant_vars <- significant_vars[order(significant_vars[, "Pr(>|z|)"]), ]
 
-# 顯示顯著特徵的排序結果
+# Display sorted significant features
 print(sorted_significant_vars)
 
-# 提取顯著特徵名稱
+# Extract significant feature names
 significant_var_names <- rownames(sorted_significant_vars)
 print(significant_var_names)
 
-# 使用逐步迴歸選擇最佳模型
+# Use stepwise regression to select best model
 best_model <- step(logistic_model, direction = "both", trace = 1)
 
-# 查看最佳模型摘要
+# View best model summary
 summary(best_model)
 
-# 提取最佳模型摘要
+# Extract best model summary
 best_model_summary <- summary(best_model)
 
-# 提取係數表（包含 p-value）
+# Extract coefficient table (including p-value)
 best_model_coefficients <- best_model_summary$coefficients
 
-# 篩選 p-value 小於 0.05 的變數
+# Filter variables with p-value < 0.05
 best_significant_vars <- best_model_coefficients[best_model_coefficients[, "Pr(>|z|)"] < 0.05, ]
 
-# 按 p-value 升序排序
+# Sort by p-value in ascending order
 best_sorted_significant_vars <- best_significant_vars[order(best_significant_vars[, "Pr(>|z|)"]), ]
 
-# 顯示逐步迴歸模型顯著特徵的排序結果
+# Display sorted significant features from stepwise regression model
 print(best_sorted_significant_vars)
 
-# 提取顯著特徵名稱
+# Extract significant feature names
 best_significant_var_names <- rownames(best_sorted_significant_vars)
 print(best_significant_var_names)
 
-# 檢查 Attrition 分佈（Yes/No 的次數）
+# Check Attrition distribution (Yes/No counts)
 attrition_counts <- table(data$Attrition)
 print(attrition_counts)
 
-# 計算每個類別的比例
+# Calculate proportions for each category
 attrition_proportions <- prop.table(attrition_counts)
 print(attrition_proportions)
 
-# 顯示比例並格式化成百分比
+# Display proportions formatted as percentages
 attrition_percentages <- round(attrition_proportions * 100, 2)
-cat("離職比例 (百分比):\n")
+cat("Attrition ratio (percentage):\n")
 print(attrition_percentages)
 
-# 建立空模型（只有截距項）
+# Build null model (intercept only)
 null_model <- glm(Attrition ~ 1, data = data, family = "binomial")
 
-# 提取空模型的 deviance 和自由度
+# Extract null model deviance and degrees of freedom
 null_deviance <- null_model$deviance
 null_df <- null_model$df.residual
 
-# 計算卡方統計量和自由度
+# Calculate chi-square statistic and degrees of freedom
 chi_squared_original <- null_deviance - logistic_model$deviance
 df_original <- null_df - logistic_model$df.residual
 
-# 計算 p-value
+# Calculate p-value
 p_value_original <- pchisq(chi_squared_original, df = df_original, lower.tail = FALSE)
 
-# 輸出結果
-cat("原始模型 vs 空模型:\n")
-cat("卡方統計量 (Chi-squared):", chi_squared_original, "\n")
-cat("自由度差異 (df):", df_original, "\n")
+# Output results
+cat("Original model vs null model:\n")
+cat("Chi-squared statistic:", chi_squared_original, "\n")
+cat("Degrees of freedom difference (df):", df_original, "\n")
 cat("p-value:", p_value_original, "\n")
 
-# 判斷是否顯著
+# Determine if significant
 if (p_value_original < 0.05) {
-  cat("結果：顯著\n")
+  cat("Result: Significant\n")
 } else {
-  cat("結果：不顯著\n")
+  cat("Result: Not significant\n")
 }
 
-### 2. 對原模型做雙向逐步迴歸 ###
+### 2. Bidirectional stepwise regression on original model ###
 
-# 計算卡方統計量和自由度
+# Calculate chi-square statistic and degrees of freedom
 chi_squared_stepwise <- null_deviance - best_model$deviance
 df_stepwise <- null_df - best_model$df.residual
 
-# 計算 p-value
+# Calculate p-value
 p_value_stepwise <- pchisq(chi_squared_stepwise, df = df_stepwise, lower.tail = FALSE)
 
-# 輸出結果
-cat("\n逐步迴歸模型 vs 空模型:\n")
-cat("卡方統計量 (Chi-squared):", chi_squared_stepwise, "\n")
-cat("自由度差異 (df):", df_stepwise, "\n")
+# Output results
+cat("\nStepwise regression model vs null model:\n")
+cat("Chi-squared statistic:", chi_squared_stepwise, "\n")
+cat("Degrees of freedom difference (df):", df_stepwise, "\n")
 cat("p-value:", p_value_stepwise, "\n")
 
-# 判斷是否顯著
+# Determine if significant
 if (p_value_stepwise < 0.05) {
-  cat("結果：顯著\n")
+  cat("Result: Significant\n")
 } else {
-  cat("結果：不顯著\n")
+  cat("Result: Not significant\n")
 }
 
-# 加回原始變數
+# Add back original variables
 data$DistanceFromHome <- original_vars$DistanceFromHome
 data$NumCompaniesWorked <- original_vars$NumCompaniesWorked
 data$PercentSalaryHike <- original_vars$PercentSalaryHike
@@ -345,26 +327,26 @@ data$YearsInCurrentRole <- original_vars$YearsInCurrentRole
 data$YearsSinceLastPromotion <- original_vars$YearsSinceLastPromotion
 data$YearsWithCurrManager <- original_vars$YearsWithCurrManager
 
-### 主題一、不同職等下，加薪和升遷對降低離職率的效果是否不同？公司是否有最適薪資結構？ ###
+### Theme 1: Do salary increases and promotions have different effects on reducing turnover rates across different job levels? Does the company have an optimal salary structure? ###
 
-# 選擇數值型變數，並排除 Attrition 
+# Select numeric variables and exclude Attrition 
 numeric_data <- data %>%
   select(where(is.numeric)) 
 
-# 計算相關係數矩陣
+# Calculate correlation coefficient matrix
 cor_matrix <- cor(numeric_data, use = "complete.obs")
 
-# 找出高相關變數
+# Find highly correlated variables
 high_corr_pairs <- which(abs(cor_matrix) > 0.6 & abs(cor_matrix) < 1, arr.ind = TRUE)
 
-# 將結果轉為資料框，方便後續處理
+# Convert results to dataframe for easier processing
 high_corr_df <- data.frame(
   Var1 = rownames(cor_matrix)[high_corr_pairs[, 1]],
   Var2 = colnames(cor_matrix)[high_corr_pairs[, 2]],
   Correlation = cor_matrix[high_corr_pairs]
 )
 
-# 移除重複的對（例如，A-B 和 B-A）
+# Remove duplicate pairs (e.g., A-B and B-A)
 high_corr_df <- high_corr_df[high_corr_df$Var1 < high_corr_df$Var2, ]
 print(high_corr_df)
 
@@ -375,18 +357,18 @@ selected_variables <- c(
   "OverTime", "RelationshipSatisfaction", "Shift","TrainingTimesLastYear", "WorkLifeBalance","Log_DistanceFromHome", "Log_NumCompaniesWorked",
   "Log_TotalWorkingYears", "Log_YearsInCurrentRole", "Log_YearsSinceLastPromotion", "Log_YearsWithCurrManager"
 )
-# 動態生成公式
+# Dynamically generate formula
 formula <- as.formula(paste("Attrition ~", paste(selected_variables, collapse = " + ")))
 
-# 印出公式確認
+# Print formula for confirmation
 print(formula)
 
-# 計算每個 JobLevel 的數量
+# Calculate count for each JobLevel
 job_level_counts <- data %>%
   group_by(JobLevel) %>%
   summarise(Count = n())
 
-# 繪製不同 JobLevel 的 MonthlyIncome 分布圖，並加上數量標註
+# Create MonthlyIncome distribution plot by JobLevel with count annotations
 library(ggplot2)
 
 job_level_attrition <- data %>%
@@ -396,28 +378,27 @@ job_level_attrition <- data %>%
     Count = n()
   )
 print(job_level_attrition)
-# 繪製箱型圖並加上平均數
+# Create boxplot with mean values
 ggplot(data, aes(x = JobLevel, y = MonthlyIncome, fill = JobLevel)) +
-  geom_boxplot(outlier.colour = "red", outlier.size = 2) +  # 繪製箱型圖
-  stat_summary(fun = mean, geom = "point", color = "purple", size = 3) +  # 顯示平均數為點
+  geom_boxplot(outlier.colour = "red", outlier.size = 2) +  # Create boxplot
+  stat_summary(fun = mean, geom = "point", color = "purple", size = 3) +  # Show mean as point
   stat_summary(fun = mean, geom = "text", aes(label = round(..y.., 2)),
-               vjust = -1, color = "purple") +  # 標註平均數
+               vjust = -1, color = "purple") +  # Annotate mean
   stat_summary(fun = max, geom = "text", aes(label = round(..y.., 2)),
-               vjust = -0.5, color = "blue") +  # 標註最大值
+               vjust = -0.5, color = "blue") +  # Annotate maximum
   stat_summary(fun = min, geom = "text", aes(label = round(..y.., 2)),
-               vjust = 1.5, color = "darkgreen") +  # 標註最小值
+               vjust = 1.5, color = "darkgreen") +  # Annotate minimum
   geom_text(data = job_level_counts, aes(x = JobLevel, y = max(data$MonthlyIncome, na.rm = TRUE), 
                                          label = paste("Count:", Count)),
-            vjust = -1, color = "black") +  # 加上每個 JobLevel 的數量標註
+            vjust = -1, color = "black") +  # Add count annotation for each JobLevel
   labs(title = "Income Distribution by Job Level",
        x = "Job Level",
        y = "Monthly Income") +
   theme_minimal()
 
-
 data_level1 <- data %>% filter(JobLevel == 1)
 
-# 動態生成公式，移除 JobLevel
+# Dynamically generate formula, removing JobLevel
 formula <- as.formula(
   paste(
     "Attrition ~", 
@@ -425,11 +406,11 @@ formula <- as.formula(
   )
 )
 print(formula)
-# 執行邏輯回歸，檢查 Income 是否影響 Attrition
+# Perform logistic regression to check if Income affects Attrition
 model_income_attrition <- glm(formula, 
                               data = data_level1, 
                               family = binomial)
-# 顯示回歸結果
+# Display regression results
 summary(model_income_attrition)
 
 data_level1 <- data %>% filter(JobLevel == 1| JobLevel == 2)
@@ -440,17 +421,16 @@ formula <- as.formula(
   )
 )
 
-# 執行邏輯回歸，檢查 Income 是否影響 Attrition
+# Perform logistic regression to check if Income affects Attrition
 model_income_attrition <- glm(formula, 
                               data = data_level1, 
                               family = binomial)
-# 顯示回歸結果
+# Display regression results
 summary(model_income_attrition)
 
+### Theme 2: Job satisfaction is significantly related to turnover. What factors have the greatest impact on job satisfaction? ###
 
-### 主題二、工作滿意度與離職顯著相關，何種因素對於工作滿意度的影響最大？ ###
-
-# 移除原始變數
+# Remove original variables
 data$DistanceFromHome <- NULL
 data$NumCompaniesWorked <- NULL
 data$PercentSalaryHike <- NULL
@@ -460,14 +440,14 @@ data$YearsInCurrentRole <- NULL
 data$YearsSinceLastPromotion <- NULL
 data$YearsWithCurrManager <- NULL
 
-# 確保必要的變數為 factor 類型
+# Ensure necessary variables are factor type
 data$JobSatisfaction <- as.factor(data$JobSatisfaction)
 data$OverTime <- as.factor(data$OverTime)
 data$WorkLifeBalance <- as.factor(data$WorkLifeBalance)
 data$EnvironmentSatisfaction <- as.factor(data$EnvironmentSatisfaction)
 data$RelationshipSatisfaction <- as.factor(data$RelationshipSatisfaction)
 
-# 新的基礎模型（無交互項）
+# New base model (without interactions)
 new_base_model <- glm(
   Attrition ~ JobSatisfaction + OverTime + WorkLifeBalance + Age + 
     EnvironmentSatisfaction + RelationshipSatisfaction + 
@@ -478,10 +458,10 @@ new_base_model <- glm(
   family = "binomial"
 )
 
-# 查看基礎模型摘要
+# View base model summary
 summary(new_base_model)
 
-# 添加交互項並構建新模型
+# Add interactions and build new model
 interaction_model1 <- glm(
   Attrition ~ JobSatisfaction * WorkLifeBalance + 
     EnvironmentSatisfaction * RelationshipSatisfaction + 
@@ -495,10 +475,10 @@ interaction_model1 <- glm(
   family = "binomial"
 )
 
-# 查看新模型摘要
+# View new model summary
 summary(interaction_model1)
 
-# 添加交互項並構建新模型
+# Add interactions and build new model
 interaction_model2 <- glm(
   Attrition ~ JobSatisfaction * WorkLifeBalance + 
     EnvironmentSatisfaction + RelationshipSatisfaction + 
@@ -510,20 +490,20 @@ interaction_model2 <- glm(
   family = "binomial"
 )
 
-# 查看新模型摘要
+# View new model summary
 summary(interaction_model2)
 
-# 比較基礎模型和新模型的 AIC
+# Compare AIC of base model and new models
 cat("New Base Model AIC:", AIC(new_base_model), "\n")
 cat("Interaction Model1 AIC:", AIC(interaction_model1), "\n")
 cat("Interaction Model2 AIC:", AIC(interaction_model2), "\n")
 
-### 主題三、驗證環境滿意度在不同部門對離職率的影響 ###
+### Theme 3: Verifying the impact of environmental satisfaction on turnover rates across different departments ###
 
-# 類別變數列表
+# Categorical variable list
 cat_vars <- c("Department", "EnvironmentSatisfaction")
 
-# 函數：計算各類別的離職率
+# Function: Calculate attrition rate for each category
 calculate_attrition_rate <- function(data, var) {
   data %>%
     group_by(!!sym(var)) %>%
@@ -535,12 +515,12 @@ calculate_attrition_rate <- function(data, var) {
     arrange(desc(attrition_rate))
 }
 
-# 對每個類別變數計算離職率
+# Calculate attrition rate for each categorical variable
 attrition_analysis <- lapply(cat_vars, function(var) {
   calculate_attrition_rate(data, var)
 })
 
-# 繪製離職率柱狀圖
+# Plot attrition rate bar chart
 plot_attrition_rate <- function(data, var) {
   ggplot(data, aes(x = !!sym(var), y = attrition_rate)) +
     geom_bar(stat = "identity", fill = "blue") +
@@ -551,14 +531,13 @@ plot_attrition_rate <- function(data, var) {
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
-# 生成圖表
+# Generate charts
 plots <- lapply(seq_along(cat_vars), function(i) {
   plot_attrition_rate(attrition_analysis[[i]], cat_vars[i])
 })
 plots
 
-
-# 加入EnvironmentSatisfaction 跟 Department的交互作用
+# Add interaction between EnvironmentSatisfaction and Department
 best_model_interact <- glm(formula = Attrition ~ Age + BusinessTravel + DailyRate + 
                              Department + EducationField + EnvironmentSatisfaction + JobInvolvement + 
                              JobLevel + JobRole + JobSatisfaction + MaritalStatus + MonthlyIncome + 
@@ -568,29 +547,25 @@ best_model_interact <- glm(formula = Attrition ~ Age + BusinessTravel + DailyRat
                              Log_YearsWithCurrManager + EnvironmentSatisfaction:Department, family = "binomial", data = data)
 summary(best_model_interact)
 
-
-
-# 創建contingency table
+# Create contingency table
 contingency_table <- table(data$Department, 
                            data$EnvironmentSatisfaction, 
                            data$Attrition)
 
-
 print(contingency_table)
 
-# 對每個部門進行卡方檢驗
+# Perform chi-square test for each department
 departments <- unique(data$Department)
 
 chi_square_results <- lapply(departments, function(dept) {
   dept_data <- data[data$Department == dept, ]
-  
   
   cont_table <- table(
     dept_data$EnvironmentSatisfaction, 
     dept_data$Attrition
   )
   
-  # 卡方檢驗
+  # Chi-square test
   chi_test <- chisq.test(cont_table)
   
   return(list(
@@ -600,14 +575,14 @@ chi_square_results <- lapply(departments, function(dept) {
   ))
 })
 
-# 轉換為dataframe以便閱讀
+# Convert to dataframe for readability
 chi_results_df <- do.call(rbind, chi_square_results)
 print(chi_results_df)
 
 library(ggplot2)
 library(dplyr)
 
-# 繪製每個部門環境滿意度與離職率的關係
+# Plot relationship between environmental satisfaction and attrition rate for each department
 ggplot(data, aes(x = factor(EnvironmentSatisfaction), fill = Attrition)) +
   geom_bar(position = "fill") +  
   facet_wrap(~ Department) +
@@ -618,7 +593,7 @@ ggplot(data, aes(x = factor(EnvironmentSatisfaction), fill = Attrition)) +
   ) +
   theme_minimal()
 
-# 捨棄其他變數的EnvironmentSatisfaction 跟 Department交互作用模型
+# Interaction model with only EnvironmentSatisfaction and Department
 interact_model <- glm(
   Attrition ~ EnvironmentSatisfaction * Department, 
   data = data, 
@@ -627,7 +602,7 @@ interact_model <- glm(
 summary(interact_model)
 anova(best_model, best_model_interact, test="Chisq")
 
-# 計算環境滿意度的勝算比
-coefficients <- c(-1.746, -2.702, -3.230) # 輸入模型中的係數
-odds_ratios <- exp(coefficients)          # 計算勝算比
+# Calculate odds ratios for environmental satisfaction
+coefficients <- c(-1.746, -2.702, -3.230) # Input coefficients from model
+odds_ratios <- exp(coefficients)          # Calculate odds ratios
 odds_ratios
